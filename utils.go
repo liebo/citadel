@@ -29,8 +29,8 @@ func parsePortInformation(info *dockerclient.ContainerInfo, c *Container) error 
 			if err != nil {
 				return err
 			}
-
 			c.Ports = append(c.Ports, &Port{
+				HostIp:        binding.HostIp,
 				Proto:         proto,
 				Port:          port,
 				ContainerPort: containerPort,

@@ -110,6 +110,7 @@ func (e *Engine) Start(c *Container, pullImage bool) error {
 
 		hostConfig.PortBindings[key] = []dockerclient.PortBinding{
 			{
+				HostIp:   b.HostIp,
 				HostPort: fmt.Sprint(b.Port),
 			},
 		}
