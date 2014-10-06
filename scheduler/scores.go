@@ -7,7 +7,7 @@ import (
 )
 
 type score struct {
-	r     *citadel.EngineSnapshot
+	r     *citadel.State
 	score float64
 }
 

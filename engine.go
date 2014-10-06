@@ -206,6 +206,18 @@ func (e *Engine) Events(h EventHandler) error {
 	return nil
 }
 
+func (e *Engine) State() (*State, error) {
+	containers, err := e.ListContainers(true)
+	if err != nil {
+		return nil, err
+	}
+
+	return &State{
+		Engine:     e,
+		Containers: containers,
+	}, nil
+}
+
 func (e *Engine) String() string {
 	return fmt.Sprintf("engine %s addr %s", e.ID, e.Addr)
 }

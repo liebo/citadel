@@ -147,7 +147,7 @@ func (c *Cluster) Start(image *citadel.Image, pull bool) (*citadel.Container, er
 	defer c.mux.Unlock()
 
 	var (
-		accepted  = []*citadel.EngineSnapshot{}
+		accepted  = []*citadel.State{}
 		scheduler = c.schedulers[image.Type]
 	)
 
@@ -162,24 +162,12 @@ func (c *Cluster) Start(image *citadel.Image, pull bool) (*citadel.Container, er
 		}
 
 		if canrun {
-			containers, err := e.ListContainers(false)
+			state, err := e.State()
 			if err != nil {
 				return nil, err
 			}
 
-			var cpus, memory float64
-			for _, con := range containers {
-				cpus += con.Image.Cpus
-				memory += con.Image.Memory
-			}
-
-			accepted = append(accepted, &citadel.EngineSnapshot{
-				ID:             e.ID,
-				ReservedCpus:   cpus,
-				ReservedMemory: memory,
-				Cpus:           e.Cpus,
-				Memory:         e.Memory,
-			})
+			accepted = append(accepted, state)
 		}
 	}
 
@@ -197,9 +185,7 @@ func (c *Cluster) Start(image *citadel.Image, pull bool) (*citadel.Container, er
 		return nil, err
 	}
 
-	engine := c.engines[s.ID]
-
-	if err := engine.Start(container, pull); err != nil {
+	if err := s.Engine.Start(container, pull); err != nil {
 		return nil, err
 	}
 
