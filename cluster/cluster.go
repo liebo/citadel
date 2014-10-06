@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/citadel/citadel"
 )
@@ -15,13 +16,15 @@ var (
 type Cluster struct {
 	mux sync.Mutex
 
+	Containers      map[*citadel.Engine][]*citadel.Container
 	engines         map[string]*citadel.Engine
 	schedulers      map[string]citadel.Scheduler
 	resourceManager citadel.ResourceManager
 }
 
-func New(manager citadel.ResourceManager, engines ...*citadel.Engine) (*Cluster, error) {
+func New(manager citadel.ResourceManager, update time.Duration, engines ...*citadel.Engine) (*Cluster, error) {
 	c := &Cluster{
+		Containers:      make(map[*citadel.Engine][]*citadel.Container),
 		engines:         make(map[string]*citadel.Engine),
 		schedulers:      make(map[string]citadel.Scheduler),
 		resourceManager: manager,
@@ -35,7 +38,25 @@ func New(manager citadel.ResourceManager, engines ...*citadel.Engine) (*Cluster,
 		c.engines[e.ID] = e
 	}
 
+	go func() {
+		for {
+			c.Update()
+			time.Sleep(update)
+		}
+	}()
+
 	return c, nil
+}
+
+func (c *Cluster) Update() error {
+	for _, e := range c.engines {
+		state, err := e.State()
+		if err != nil {
+			return err
+		}
+		c.Containers[state.Engine] = state.Containers
+	}
+	return nil
 }
 
 func (c *Cluster) Events(handler citadel.EventHandler) error {
