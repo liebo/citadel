@@ -48,7 +48,7 @@ func (e *Engine) Pull(image string) error {
 	return nil
 }
 
-func (e *Engine) Start(c *Container, pullImage bool) error {
+func (e *Engine) Create(c *Container, pullImage bool) error {
 	var (
 		err    error
 		env    = []string{}
@@ -67,11 +67,9 @@ func (e *Engine) Start(c *Container, pullImage bool) error {
 	)
 
 	vols := make(map[string]struct{})
-	binds := []string{}
 	for _, v := range i.Volumes {
 		if strings.Index(v, ":") > -1 {
 			cv := strings.Split(v, ":")
-			binds = append(binds, v)
 			v = cv[1]
 		}
 		vols[v] = struct{}{}
@@ -88,9 +86,35 @@ func (e *Engine) Start(c *Container, pullImage bool) error {
 		Volumes:      vols,
 	}
 
+	for _, b := range i.BindPorts {
+		key := fmt.Sprintf("%d/%s", b.ContainerPort, b.Proto)
+		config.ExposedPorts[key] = struct{}{}
+	}
+
+	if pullImage {
+		if err := e.Pull(i.Name); err != nil {
+			return err
+		}
+	}
+
+	if c.ID, err = client.CreateContainer(config, c.Name); err != nil {
+		return err
+	}
+
+	return e.updatePortInformation(c)
+}
+
+func (e *Engine) Start(c *Container, i *Image) error {
 	links := []string{}
 	for k, v := range i.Links {
 		links = append(links, fmt.Sprintf("%s:%s", k, v))
+	}
+
+	binds := []string{}
+	for _, v := range i.Volumes {
+		if strings.Index(v, ":") > -1 {
+			binds = append(binds, v)
+		}
 	}
 	hostConfig := &dockerclient.HostConfig{
 		PublishAllPorts: i.Publish,
@@ -106,7 +130,6 @@ func (e *Engine) Start(c *Container, pullImage bool) error {
 
 	for _, b := range i.BindPorts {
 		key := fmt.Sprintf("%d/%s", b.ContainerPort, b.Proto)
-		config.ExposedPorts[key] = struct{}{}
 
 		hostConfig.PortBindings[key] = []dockerclient.PortBinding{
 			{
@@ -116,21 +139,7 @@ func (e *Engine) Start(c *Container, pullImage bool) error {
 		}
 	}
 
-	if pullImage {
-		if err := e.Pull(i.Name); err != nil {
-			return err
-		}
-	}
-
-	if c.ID, err = client.CreateContainer(config, c.Name); err != nil {
-		return err
-	}
-
-	if err := client.StartContainer(c.ID, hostConfig); err != nil {
-		return err
-	}
-
-	return e.updatePortInformation(c)
+	return e.client.StartContainer(c.ID, hostConfig)
 }
 
 func (e *Engine) ListImages() ([]string, error) {

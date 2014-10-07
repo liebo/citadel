@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/citadel/citadel"
+	"github.com/citadel/citadel/api"
 	"github.com/citadel/citadel/cluster"
 	"github.com/citadel/citadel/scheduler"
 )
@@ -55,16 +55,16 @@ func main() {
 		log.Fatalf("c.Events: %v", err)
 	}
 
-	for {
-		fmt.Println("")
-		for _, containers := range c.Containers {
-			for _, container := range containers {
-				fmt.Println(container)
+	/*	for {
+			fmt.Println("")
+			for _, containers := range c.Containers {
+				for _, container := range containers {
+					fmt.Println(container)
+				}
 			}
+			time.Sleep(2 * time.Second)
 		}
-		time.Sleep(2 * time.Second)
-	}
-
+	*/
 	/*
 		image := &citadel.Image{
 			Name:   "redis",
@@ -88,4 +88,5 @@ func main() {
 
 	*/
 
+	log.Fatal(api.ListenAndServe(c, ":4243"))
 }

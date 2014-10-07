@@ -3,6 +3,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,7 +17,7 @@ var (
 type Cluster struct {
 	mux sync.Mutex
 
-	Containers      map[*citadel.Engine][]*citadel.Container
+	containers      map[*citadel.Engine][]*citadel.Container
 	engines         map[string]*citadel.Engine
 	schedulers      map[string]citadel.Scheduler
 	resourceManager citadel.ResourceManager
@@ -24,7 +25,7 @@ type Cluster struct {
 
 func New(manager citadel.ResourceManager, update time.Duration, engines ...*citadel.Engine) (*Cluster, error) {
 	c := &Cluster{
-		Containers:      make(map[*citadel.Engine][]*citadel.Container),
+		containers:      make(map[*citadel.Engine][]*citadel.Container),
 		engines:         make(map[string]*citadel.Engine),
 		schedulers:      make(map[string]citadel.Scheduler),
 		resourceManager: manager,
@@ -48,13 +49,24 @@ func New(manager citadel.ResourceManager, update time.Duration, engines ...*cita
 	return c, nil
 }
 
+func (c *Cluster) ContainerByID(ID string) *citadel.Container {
+	for _, ccs := range c.containers {
+		for _, cc := range ccs {
+			if strings.HasPrefix(cc.ID, ID) {
+				return cc
+			}
+		}
+	}
+	return nil
+}
+
 func (c *Cluster) Update() error {
 	for _, e := range c.engines {
 		state, err := e.State()
 		if err != nil {
 			return err
 		}
-		c.Containers[state.Engine] = state.Containers
+		c.containers[state.Engine] = state.Containers
 	}
 	return nil
 }
@@ -163,7 +175,7 @@ func (c *Cluster) Remove(container *citadel.Container) error {
 	return engine.Remove(container)
 }
 
-func (c *Cluster) Start(image *citadel.Image, pull bool) (*citadel.Container, error) {
+func (c *Cluster) Create(image *citadel.Image, pull bool) (*citadel.Container, error) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
@@ -206,11 +218,22 @@ func (c *Cluster) Start(image *citadel.Image, pull bool) (*citadel.Container, er
 		return nil, err
 	}
 
-	if err := s.Engine.Start(container, pull); err != nil {
+	if err := s.Engine.Create(container, pull); err != nil {
 		return nil, err
 	}
-
+	c.Update()
 	return container, nil
+}
+func (c *Cluster) Start(container *citadel.Container, image *citadel.Image) error {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	engine := c.engines[container.Engine.ID]
+	if engine == nil {
+		return fmt.Errorf("engine with id %s is not in cluster", container.Engine.ID)
+	}
+
+	return engine.Start(container, image)
 }
 
 // Engines returns the engines registered in the cluster
