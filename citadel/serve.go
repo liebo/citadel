@@ -2,19 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
-	"strings"
 
+	"github.com/citadel/citadel/discovery"
 	"github.com/codegangsta/cli"
-	"github.com/coreos/go-etcd/etcd"
 	"github.com/gorilla/mux"
 )
 
 var serveCommand = cli.Command{
-	Name:  "serve",
+	Name:  "discovery",
 	Usage: "serve the REST api for the discovery service",
 	Flags: []cli.Flag{
 		cli.StringFlag{Name: "addr", Value: ":8080", Usage: "ip and port to serve the HTTP api"},
@@ -23,32 +20,16 @@ var serveCommand = cli.Command{
 	Action: serveAction,
 }
 
-type requestInfo struct {
-	Username string
-	Cluster  string
-	SlaveID  string
-}
-
-func newRequestInfo(r *http.Request) requestInfo {
-	vars := mux.Vars(r)
-
-	return requestInfo{
-		Username: vars["username"],
-		Cluster:  vars["cluster"],
-		SlaveID:  vars["slave"],
-	}
-}
-
 type server struct {
 	r      *mux.Router
-	client *etcd.Client
+	client *discovery.Client
 	ttl    uint64
 }
 
 func newServer(context *cli.Context) http.Handler {
 	s := &server{
 		r:      mux.NewRouter(),
-		client: getEtcdClient(context),
+		client: discovery.New(context.GlobalStringSlice("etcd")),
 		ttl:    uint64(context.Int("ttl")),
 	}
 
@@ -75,22 +56,15 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // ["192.168.56.1:2375"]
 func (s *server) listClusterSlaves(w http.ResponseWriter, r *http.Request) {
-	var (
-		ips []string
+	info := newRequestInfo(r)
 
-		info = newRequestInfo(r)
-	)
-
-	resp, err := s.client.Get(filepath.Join("/citadel/discovery", info.Username, info.Cluster, "slaves"), true, true)
+	ips, err := s.client.GetSlaves(info.Username, info.Cluster)
 	if err != nil {
-		logger.WithField("error", err).Error("list cluster slaves")
+		logger.WithField("error", err).Error("get slaves for cluster")
 
 		writeError(w, err, info)
-		return
-	}
 
-	for _, n := range resp.Node.Nodes {
-		ips = append(ips, n.Value)
+		return
 	}
 
 	w.Header().Set("content-type", "application/json")
@@ -118,7 +92,7 @@ func (s *server) updateSlave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := s.client.Set(filepath.Join("/citadel/discovery", info.Username, info.Cluster, "slaves", info.SlaveID), string(data), s.ttl); err != nil {
+	if err := s.client.SetSlave(info.Username, info.Cluster, info.SlaveID, string(data), s.ttl); err != nil {
 		logger.WithField("error", err).Error("read request body for addr")
 
 		writeError(w, err, info)
@@ -129,25 +103,12 @@ func (s *server) updateSlave(w http.ResponseWriter, r *http.Request) {
 func (s *server) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	info := newRequestInfo(r)
 
-	if _, err := s.client.Delete(filepath.Join("/citadel/discovery", info.Username, info.Cluster), true); err != nil {
+	if err := s.client.Delete(info.Username, info.Cluster); err != nil {
 		logger.WithField("error", err).Error("list cluster slaves")
 
 		writeError(w, err, info)
 		return
 	}
-}
-
-func writeError(w http.ResponseWriter, err error, info requestInfo) {
-	if isNotFound(err) {
-		http.Error(w, fmt.Sprintf("cluster for %s/%s not found", info.Username, info.Cluster), http.StatusNotFound)
-	} else {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-}
-
-// isNotFound returns true if the error is an etcd key not found error
-func isNotFound(err error) bool {
-	return strings.Contains(err.Error(), "Key not found")
 }
 
 func serveAction(context *cli.Context) {
