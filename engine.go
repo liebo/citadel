@@ -3,11 +3,25 @@ package citadel
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/samalba/dockerclient"
 )
+
+func NewEngine(id string, addr string, cpus float64, memory float64, labels []string) *Engine {
+	e := &Engine{
+		ID:     id,
+		Addr:   addr,
+		Cpus:   cpus,
+		Memory: memory,
+		Labels: labels,
+		ch:     make(chan bool),
+	}
+	go e.updateLoop()
+	return e
+}
 
 type Engine struct {
 	ID     string   `json:"id,omitempty"`
@@ -16,6 +30,8 @@ type Engine struct {
 	Memory float64  `json:"memory,omitempty"`
 	Labels []string `json:"labels,omitempty"`
 
+	ch           chan bool
+	state        *State
 	client       *dockerclient.DockerClient
 	eventHandler EventHandler
 }
@@ -28,7 +44,25 @@ func (e *Engine) Connect(config *tls.Config) error {
 
 	e.client = c
 
+	// Force a state update before returning.
+	if err := e.updateState(); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (e *Engine) updateLoop() {
+	for {
+		select {
+		case <-e.ch:
+			log.Printf("Async refresh")
+			e.updateState()
+		case <-time.After(30 * time.Second):
+			log.Printf("Forcing state refresh for %s", e.ID)
+			e.updateState()
+		}
+	}
 }
 
 func (e *Engine) SetClient(c *dockerclient.DockerClient) {
@@ -215,16 +249,28 @@ func (e *Engine) Events(h EventHandler) error {
 	return nil
 }
 
-func (e *Engine) State() (*State, error) {
+func (e *Engine) updateState() error {
 	containers, err := e.ListContainers(true)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &State{
+	e.state = &State{
 		Engine:     e,
 		Containers: containers,
-	}, nil
+	}
+
+	log.Printf("[%s] Updated state", e.ID)
+
+	return nil
+}
+
+func (e *Engine) updateStateAsync() {
+	e.ch <- true
+}
+
+func (e *Engine) State() (*State, error) {
+	return e.state, nil
 }
 
 func (e *Engine) String() string {
@@ -232,6 +278,9 @@ func (e *Engine) String() string {
 }
 
 func (e *Engine) handler(ev *dockerclient.Event, args ...interface{}) {
+	// Something changed - refresh our internal state.
+	e.updateStateAsync()
+
 	event := &Event{
 		Engine: e,
 		Type:   ev.Status,

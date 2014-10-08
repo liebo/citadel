@@ -17,7 +17,6 @@ var (
 type Cluster struct {
 	mux sync.Mutex
 
-	containers      map[*citadel.Engine][]*citadel.Container
 	engines         map[string]*citadel.Engine
 	schedulers      map[string]citadel.Scheduler
 	resourceManager citadel.ResourceManager
@@ -25,7 +24,6 @@ type Cluster struct {
 
 func New(manager citadel.ResourceManager, update time.Duration, engines ...*citadel.Engine) (*Cluster, error) {
 	c := &Cluster{
-		containers:      make(map[*citadel.Engine][]*citadel.Container),
 		engines:         make(map[string]*citadel.Engine),
 		schedulers:      make(map[string]citadel.Scheduler),
 		resourceManager: manager,
@@ -39,34 +37,20 @@ func New(manager citadel.ResourceManager, update time.Duration, engines ...*cita
 		c.engines[e.ID] = e
 	}
 
-	go func() {
-		for {
-			c.Update()
-			time.Sleep(update)
-		}
-	}()
-
 	return c, nil
 }
 
 func (c *Cluster) ContainerByID(ID string) *citadel.Container {
-	for _, ccs := range c.containers {
-		for _, cc := range ccs {
-			if strings.HasPrefix(cc.ID, ID) {
-				return cc
-			}
-		}
-	}
-	return nil
-}
-
-func (c *Cluster) Update() error {
 	for _, e := range c.engines {
 		state, err := e.State()
 		if err != nil {
-			return err
+			continue
 		}
-		c.containers[state.Engine] = state.Containers
+		for _, container := range state.Containers {
+			if strings.HasPrefix(container.ID, ID) {
+				return container
+			}
+		}
 	}
 	return nil
 }
@@ -221,7 +205,6 @@ func (c *Cluster) Create(image *citadel.Image, pull bool) (*citadel.Container, e
 	if err := s.Engine.Create(container, pull); err != nil {
 		return nil, err
 	}
-	c.Update()
 	return container, nil
 }
 func (c *Cluster) Start(container *citadel.Container, image *citadel.Image) error {

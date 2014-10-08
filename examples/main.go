@@ -21,18 +21,8 @@ func (l *logHandler) Handle(e *citadel.Event) error {
 }
 
 func main() {
-	cluster1 := &citadel.Engine{
-		ID:     "cluster-1",
-		Addr:   "http://ec2-54-68-133-155.us-west-2.compute.amazonaws.com:4242",
-		Memory: 2048,
-		Cpus:   1,
-	}
-	cluster2 := &citadel.Engine{
-		ID:     "cluster-2",
-		Addr:   "http://ec2-54-69-225-30.us-west-2.compute.amazonaws.com:4242",
-		Memory: 2048,
-		Cpus:   1,
-	}
+	cluster1 := citadel.NewEngine("cluster-1", "http://ec2-54-68-133-155.us-west-2.compute.amazonaws.com:4242", 2048, 1, []string{})
+	cluster2 := citadel.NewEngine("cluster-2", "http://ec2-54-69-225-30.us-west-2.compute.amazonaws.com:4242", 2048, 1, []string{})
 
 	if err := cluster1.Connect(nil); err != nil {
 		log.Fatalf("cluster1.Connect: %v", err)
