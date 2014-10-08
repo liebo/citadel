@@ -93,19 +93,19 @@ func (c *Cluster) RemoveEngine(e *citadel.Engine) error {
 }
 
 // ListContainers returns all the containers running in the cluster
-func (c *Cluster) ListContainers(all bool) ([]*citadel.Container, error) {
+func (c *Cluster) ListContainers() ([]*citadel.Container, error) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
 	out := []*citadel.Container{}
 
 	for _, e := range c.engines {
-		containers, err := e.ListContainers(all)
+		s, err := e.State()
 		if err != nil {
 			return nil, err
 		}
 
-		out = append(out, containers...)
+		out = append(out, s.Containers...)
 	}
 
 	return out, nil
@@ -246,11 +246,11 @@ func (c *Cluster) ClusterInfo() (*citadel.ClusterInfo, error) {
 	reservedCpus := 0.0
 	reservedMemory := 0.0
 	for _, e := range c.engines {
-		c, err := e.ListContainers(false)
+		s, err := e.State()
 		if err != nil {
 			return nil, err
 		}
-		for _, cnt := range c {
+		for _, cnt := range s.Containers {
 			reservedCpus += cnt.Image.Cpus
 			reservedMemory += cnt.Image.Memory
 		}
@@ -258,7 +258,7 @@ func (c *Cluster) ClusterInfo() (*citadel.ClusterInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		containerCount += len(c)
+		containerCount += len(s.Containers)
 		imageCount += len(i)
 		totalCpu += e.Cpus
 		totalMemory += e.Memory

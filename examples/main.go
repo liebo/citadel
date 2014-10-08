@@ -71,7 +71,7 @@ func main() {
 
 			log.Printf("ran container %s\n", container.ID)
 		}
-		containers, err := c.ListContainers(false)
+		containers, err := c.ListContainers()
 		if err != nil {
 			log.Fatal(err)
 		}
