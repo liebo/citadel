@@ -20,22 +20,30 @@ func parsePortInformation(info *dockerclient.ContainerInfo, c *Container) error 
 		parts := strings.Split(pp, "/")
 		rawPort, proto := parts[0], parts[1]
 
-		for _, binding := range b {
-			port, err := strconv.Atoi(binding.HostPort)
-			if err != nil {
-				return err
-			}
+		containerPort, err := strconv.Atoi(rawPort)
+		if err != nil {
+			return err
+		}
 
-			containerPort, err := strconv.Atoi(rawPort)
-			if err != nil {
-				return err
-			}
+		if b == nil {
 			c.Ports = append(c.Ports, &Port{
-				HostIp:        binding.HostIp,
 				Proto:         proto,
-				Port:          port,
 				ContainerPort: containerPort,
 			})
+		} else {
+			for _, binding := range b {
+				port, err := strconv.Atoi(binding.HostPort)
+				if err != nil {
+					return err
+				}
+
+				c.Ports = append(c.Ports, &Port{
+					HostIp:        binding.HostIp,
+					Proto:         proto,
+					Port:          port,
+					ContainerPort: containerPort,
+				})
+			}
 		}
 	}
 
