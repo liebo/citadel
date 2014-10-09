@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/samalba/dockerclient"
@@ -30,6 +31,7 @@ type Engine struct {
 	Memory float64  `json:"memory,omitempty"`
 	Labels []string `json:"labels,omitempty"`
 
+	mux          sync.Mutex
 	ch           chan bool
 	state        *State
 	client       *dockerclient.DockerClient
@@ -148,7 +150,10 @@ func (e *Engine) Create(c *Container, pullImage bool) error {
 	}
 
 	// Register the container immediately while waiting for a state refresh.
+	e.mux.Lock()
+	defer e.mux.Unlock()
 	e.state.Containers[c.ID] = c
+
 	return nil
 }
 
@@ -255,7 +260,10 @@ func (e *Engine) Remove(container *Container) error {
 
 	// Remove the container from the state. Eventually, the state refresh loop
 	// will rewrite this.
+	e.mux.Lock()
+	defer e.mux.Unlock()
 	delete(e.state.Containers, container.ID)
+
 	return nil
 }
 
@@ -275,6 +283,9 @@ func (e *Engine) updateState() error {
 	if err != nil {
 		return err
 	}
+
+	e.mux.Lock()
+	defer e.mux.Unlock()
 
 	e.state = &State{
 		Engine:     e,
