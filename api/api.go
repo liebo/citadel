@@ -50,14 +50,17 @@ func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Requ
 		fmt.Println("Start Error1:", err)
 	}
 
-	container := c.ContainerByID(mux.Vars(r)["name"])
+	name := mux.Vars(r)["name"]
+	container := c.ContainerByID(name)
+	if container == nil {
+		log.Errorf("Container %s not found", name)
+		return
+	}
 
-	if container != nil {
-		if err := c.Start(container, &image); err == nil {
-			fmt.Fprintf(w, "{%q:%q}", "Id", container.ID)
-		} else {
-			fmt.Println("Start Error2:", err)
-		}
+	if err := c.Start(container, &image); err == nil {
+		fmt.Fprintf(w, "{%q:%q}", "Id", container.ID)
+	} else {
+		fmt.Println("Start Error2:", err)
 	}
 }
 
