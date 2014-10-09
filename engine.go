@@ -135,7 +135,12 @@ func (e *Engine) Create(c *Container, pullImage bool) error {
 		return err
 	}
 
-	return e.updatePortInformation(c)
+	if err = e.updatePortInformation(c); err != nil {
+		return err
+	}
+
+	e.state.Containers = append(e.state.Containers, c)
+	return nil
 }
 
 func (e *Engine) Start(c *Container, i *Image) error {
