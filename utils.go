@@ -154,9 +154,17 @@ func parseImageName(name string) *ImageInfo {
 	}
 
 	img := strings.Split(name, ":")
-	if len(img) == 2 {
+	if len(img) >= 2 {
 		imageInfo.Name = img[0]
 		imageInfo.Tag = img[1]
+	}
+	switch {
+	case len(img) == 2:
+		imageInfo.Name = img[0]
+		imageInfo.Tag = img[1]
+	case len(img) == 3:
+		imageInfo.Name = strings.Join(img[:2], ":")
+		imageInfo.Tag = img[2]
 	}
 
 	return imageInfo
