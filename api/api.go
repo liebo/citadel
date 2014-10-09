@@ -164,15 +164,33 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 		dockerContainers = append(dockerContainers, citadel.ToDockerContainer(cs))
 	}
 
-	b, _ := json.Marshal(dockerContainers)
-	w.Write(b)
+	json.NewEncoder(w).Encode(dockerContainers)
 }
 
 func getInfo(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
 	if containers, err := c.ListContainers(); err != nil {
 		log.Errorf("Failed to list containers: %v", err)
 	} else {
-		fmt.Fprintf(w, "{%q:%d}", "Containers", len(containers))
+		var driverStatus [][2]string
+
+		for _, engine := range c.Engines() {
+			driverStatus = append(driverStatus, [2]string{engine.ID, engine.Addr})
+		}
+		info := struct {
+			Containers                             int
+			Driver, ExecutionDriver                string
+			DriverStatus                           [][2]string
+			KernelVersion, OperatingSystem         string
+			MemoryLimit, SwapLimit, IPv4Forwarding bool
+		}{
+			len(containers),
+			"libcluster", "libcluster",
+			driverStatus,
+			"N/A", "N/A",
+			true, true, true,
+		}
+
+		json.NewEncoder(w).Encode(info)
 	}
 }
 
