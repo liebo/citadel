@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crypto/md5"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/citadel/citadel"
 	"github.com/citadel/citadel/api"
 	"github.com/citadel/citadel/cluster"
+	"github.com/citadel/citadel/discovery"
 	"github.com/citadel/citadel/scheduler"
 )
 
@@ -20,18 +23,37 @@ func (l *logHandler) Handle(e *citadel.Event) error {
 	return nil
 }
 
+// temporary register 2 nodes
+func registerTestSlaves() {
+	discovery.RegisterSlave("http://discovery.crosbymichael.com", "citadel_test", "cluster", "node1", "http://ec2-54-68-133-155.us-west-2.compute.amazonaws.com:4242")
+	discovery.RegisterSlave("http://discovery.crosbymichael.com", "citadel_test", "cluster", "node2", "http://ec2-54-69-225-30.us-west-2.compute.amazonaws.com:4242")
+}
+
 func main() {
-	cluster1 := citadel.NewEngine("cluster-1", "http://ec2-54-68-133-155.us-west-2.compute.amazonaws.com:4242", 2048, 1, []string{})
-	cluster2 := citadel.NewEngine("cluster-2", "http://ec2-54-69-225-30.us-west-2.compute.amazonaws.com:4242", 2048, 1, []string{})
 
-	if err := cluster1.Connect(nil); err != nil {
-		log.Fatalf("cluster1.Connect: %v", err)
-	}
-	if err := cluster2.Connect(nil); err != nil {
-		log.Fatalf("cluster2.Connect: %v", err)
+	go func() {
+		for {
+			time.Sleep(25 * time.Second)
+			registerTestSlaves()
+		}
+	}()
+
+	registerTestSlaves()
+	nodes, err := discovery.FetchSlaves("http://discovery.crosbymichael.com", "citadel_test", "cluster")
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	c, err := cluster.New(scheduler.NewResourceManager(), 2*time.Second, cluster1, cluster2)
+	var engines []*citadel.Engine
+	for _, node := range nodes {
+		engine := citadel.NewEngine(fmt.Sprintf("node-%x", md5.Sum([]byte(node))), node, 2048, 1, []string{})
+		if err := engine.Connect(nil); err != nil {
+			log.Fatalf("node.Connect: %v", err)
+		}
+		engines = append(engines, engine)
+	}
+
+	c, err := cluster.New(scheduler.NewResourceManager(), 2*time.Second, engines...)
 	if err != nil {
 		log.Fatalf("cluster.New: %v", err)
 	}
