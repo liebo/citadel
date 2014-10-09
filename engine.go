@@ -139,7 +139,8 @@ func (e *Engine) Create(c *Container, pullImage bool) error {
 		return err
 	}
 
-	e.state.Containers = append(e.state.Containers, c)
+	// Register the container immediately while waiting for a state refresh.
+	e.state.Containers[c.ID] = c
 	return nil
 }
 
@@ -240,7 +241,14 @@ func (e *Engine) Restart(container *Container, timeout int) error {
 }
 
 func (e *Engine) Remove(container *Container) error {
-	return e.client.RemoveContainer(container.ID)
+	if err := e.client.RemoveContainer(container.ID); err != nil {
+		return err
+	}
+
+	// Remove the container from the state. Eventually, the state refresh loop
+	// will rewrite this.
+	delete(e.state.Containers, container.ID)
+	return nil
 }
 
 func (e *Engine) Events(h EventHandler) error {
@@ -262,7 +270,11 @@ func (e *Engine) updateState() error {
 
 	e.state = &State{
 		Engine:     e,
-		Containers: containers,
+		Containers: make(map[string]*Container),
+	}
+
+	for _, c := range containers {
+		e.state.Containers[c.ID] = c
 	}
 
 	log.Printf("[%s] Updated state", e.ID)

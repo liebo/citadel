@@ -105,7 +105,9 @@ func (c *Cluster) ListContainers() ([]*citadel.Container, error) {
 			return nil, err
 		}
 
-		out = append(out, s.Containers...)
+		for _, c := range s.Containers {
+			out = append(out, c)
+		}
 	}
 
 	return out, nil

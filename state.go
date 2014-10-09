@@ -3,8 +3,8 @@ package citadel
 // State represents an entire engine's current state including all
 // containers and resource information for the engine
 type State struct {
-	Engine     *Engine      `json:"engine,omitempty"`
-	Containers []*Container `json:"containers,omitempty"`
+	Engine     *Engine               `json:"engine,omitempty"`
+	Containers map[string]*Container `json:"containers,omitempty"`
 }
 
 // ReservedCpus returns the current cpu reservation for the state
