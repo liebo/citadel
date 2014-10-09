@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/citadel/citadel"
 )
@@ -27,9 +26,8 @@ func (u *UniqueScheduler) Schedule(c *citadel.Image, e *citadel.Engine) (bool, e
 func (u *UniqueScheduler) hasImage(i *citadel.Image, containers []*citadel.Container) bool {
 	fullImage := i.Name
 
-	if !strings.Contains(fullImage, ":") {
-		fullImage = fmt.Sprintf("%s:latest", fullImage)
-	}
+	imageInfo := citadel.ParseImageName(i.Name)
+	fullImage = fmt.Sprintf("%s:%s", imageInfo.Name, imageInfo.Tag)
 
 	for _, c := range containers {
 		if c.Image.Name == fullImage {

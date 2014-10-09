@@ -1,6 +1,7 @@
 package citadel
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -147,25 +148,34 @@ func FromDockerContainer(id, image string, engine *Engine) (*Container, error) {
 	return container, nil
 }
 
-func parseImageName(name string) *ImageInfo {
+func ParseImageName(name string) *ImageInfo {
 	imageInfo := &ImageInfo{
 		Name: name,
 		Tag:  "latest",
 	}
 
-	img := strings.Split(name, ":")
-	if len(img) >= 2 {
-		imageInfo.Name = img[0]
-		imageInfo.Tag = img[1]
-	}
+	// image type (top-level / user)
 	switch {
-	case len(img) == 2:
-		imageInfo.Name = img[0]
-		imageInfo.Tag = img[1]
-	case len(img) == 3:
-		imageInfo.Name = strings.Join(img[:2], ":")
-		imageInfo.Tag = img[2]
+	case strings.Index(name, "/") == -1:
+		if strings.Index(name, ":") != -1 {
+			parts := strings.Split(name, ":")
+			imageInfo.Name = parts[0]
+			imageInfo.Tag = parts[1]
+		}
+	case strings.Index(name, "/") != -1:
+		parts := strings.Split(name, "/")
+		n := parts[0]
+		t := parts[1]
+		if strings.Index(t, ":") != -1 {
+			tparts := strings.Split(t, ":")
+			n = fmt.Sprintf("%s/%s", n, tparts[0])
+			t = tparts[1]
+		} else {
+			n = name
+			t = "latest"
+		}
+		imageInfo.Name = n
+		imageInfo.Tag = t
 	}
-
 	return imageInfo
 }

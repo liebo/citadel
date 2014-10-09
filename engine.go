@@ -41,7 +41,7 @@ func (e *Engine) IsConnected() bool {
 }
 
 func (e *Engine) Pull(image string) error {
-	imageInfo := parseImageName(image)
+	imageInfo := ParseImageName(image)
 	if err := e.client.PullImage(imageInfo.Name, imageInfo.Tag); err != nil {
 		return err
 	}
