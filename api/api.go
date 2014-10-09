@@ -61,15 +61,14 @@ func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func postContainersRestart(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
+func redirectContainer(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
 	container := c.ContainerByID(mux.Vars(r)["name"])
-
 	if container != nil {
 		newURL, _ := url.Parse(container.Engine.Addr)
 		newURL.RawQuery = r.URL.RawQuery
 		newURL.Path = r.URL.Path
 		fmt.Println("REDIR ->", newURL.String())
-		http.Redirect(w, r, newURL.String(), 302)
+		http.Redirect(w, r, newURL.String(), http.StatusSeeOther)
 	}
 }
 
@@ -131,13 +130,13 @@ func createRouter(c *cluster.Cluster) (*mux.Router, error) {
 			//			"/images/{name:.*}/get":           getImagesGet,
 			//			"/images/{name:.*}/history":       getImagesHistory,
 			//			"/images/{name:.*}/json":          getImagesByName,
-			"/containers/ps":   getContainersJSON,
-			"/containers/json": getContainersJSON,
-			//			"/containers/{name:.*}/export":    getContainersExport,
-			//			"/containers/{name:.*}/changes":   getContainersChanges,
-			//#			"/containers/{name:.*}/json": getContainersByName,
-			//			"/containers/{name:.*}/top":       getContainersTop,
-			//			"/containers/{name:.*}/logs":      getContainersLogs,
+			"/containers/ps":                getContainersJSON,
+			"/containers/json":              getContainersJSON,
+			"/containers/{name:.*}/export":  redirectContainer,
+			"/containers/{name:.*}/changes": redirectContainer,
+			"/containers/{name:.*}/json":    redirectContainer,
+			"/containers/{name:.*}/top":     redirectContainer,
+			"/containers/{name:.*}/logs":    redirectContainer,
 			//			"/containers/{name:.*}/attach/ws": wsContainersAttach,
 		},
 		"POST": {
@@ -152,12 +151,12 @@ func createRouter(c *cluster.Cluster) (*mux.Router, error) {
 			//# "/containers/{name:.*}/kill": postContainersKill,
 			//#			"/containers/{name:.*}/pause":   postContainersPause,
 			//#			"/containers/{name:.*}/unpause": postContainersUnpause,
-			"/containers/{name:.*}/restart": postContainersRestart,
-			"/containers/{name:.*}/start":   postContainersStart,
+			//#"/containers/{name:.*}/restart": postContainersRestart,
+			"/containers/{name:.*}/start": postContainersStart,
 			//#"/containers/{name:.*}/stop":    postContainersStop,
 			//			"/containers/{name:.*}/wait":    postContainersWait,
 			//			"/containers/{name:.*}/resize":  postContainersResize,
-			//			"/containers/{name:.*}/attach":  postContainersAttach,
+			//			#"/containers/{name:.*}/attach": postContainersAttach,
 			//			"/containers/{name:.*}/copy":    postContainersCopy,
 			//			"/containers/{name:.*}/exec":    postContainerExecCreate,
 			//			"/exec/{name:.*}/start":         postContainerExecStart,
