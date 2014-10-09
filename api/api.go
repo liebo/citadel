@@ -93,13 +93,21 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 	w.Write(b)
 }
 
+func getInfo(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
+	if containers, err := c.ListContainers(); err != nil {
+		log.Errorf("Failed to list containers: %v", err)
+	} else {
+		fmt.Fprintf(w, "{%q:%d}", "Containers", len(containers))
+	}
+}
+
 func createRouter(c *cluster.Cluster) (*mux.Router, error) {
 	r := mux.NewRouter()
 	m := map[string]map[string]HttpApiFunc{
 		"GET": {
 			"/_ping": ping,
 			//#			"/events": getEvents,
-			//			"/info":                           getInfo,
+			"/info": getInfo,
 			//#			"/version": getVersion,
 			//			"/images/json":                    getImagesJSON,
 			//			"/images/viz":                     getImagesViz,
