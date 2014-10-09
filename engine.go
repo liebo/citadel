@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,7 @@ func NewEngine(id string, addr string, cpus float64, memory float64, labels []st
 
 type Engine struct {
 	ID     string   `json:"id,omitempty"`
+	IP     string   `json:"ip,omitempty"`
 	Addr   string   `json:"addr,omitempty"`
 	Cpus   float64  `json:"cpus,omitempty"`
 	Memory float64  `json:"memory,omitempty"`
@@ -43,6 +45,12 @@ func (e *Engine) Connect(config *tls.Config) error {
 	if err != nil {
 		return err
 	}
+
+	addr, err := net.ResolveIPAddr("ip4", strings.Split(c.URL.Host, ":")[0])
+	if err != nil {
+		return err
+	}
+	e.IP = addr.IP.String()
 
 	e.client = c
 
@@ -119,7 +127,8 @@ func (e *Engine) Create(c *Container, pullImage bool) error {
 		ExposedPorts: make(map[string]struct{}),
 		Volumes:      vols,
 		HostConfig: dockerclient.HostConfig{
-			PortBindings: make(map[string][]dockerclient.PortBinding),
+			PortBindings:    make(map[string][]dockerclient.PortBinding),
+			PublishAllPorts: i.Publish,
 		},
 	}
 

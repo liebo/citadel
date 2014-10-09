@@ -90,12 +90,17 @@ func ToDockerContainer(c *Container) dockerclient.Container {
 		Status:  c.State,
 	}
 	for _, port := range c.Ports {
-		container.Ports = append(container.Ports, dockerclient.Port{
+		port := dockerclient.Port{
 			IP:          port.HostIp,
 			PrivatePort: port.ContainerPort,
 			PublicPort:  port.Port,
 			Type:        port.Proto,
-		})
+		}
+
+		if port.IP == "0.0.0.0" {
+			port.IP = c.Engine.IP
+		}
+		container.Ports = append(container.Ports, port)
 	}
 	return container
 }

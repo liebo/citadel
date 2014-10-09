@@ -52,7 +52,7 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 			ports = append(ports, &port)
 		}
 	}
-
+	image.Publish = config.HostConfig.PublishAllPorts
 	image.BindPorts = ports
 	image.Name = config.Image
 	image.Args = config.Cmd
