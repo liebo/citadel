@@ -64,6 +64,19 @@ func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Requ
 	}
 }
 
+func deleteContainers(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	container := c.ContainerByID(name)
+	if container == nil {
+		log.Errorf("Container %s not found", name)
+		return
+	}
+	if err := c.Remove(container); err != nil {
+		log.Errorf("Unable to remove %s: %v", name, err)
+		return
+	}
+}
+
 func redirectContainer(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
 	container := c.ContainerByID(mux.Vars(r)["name"])
 	if container != nil {
@@ -165,8 +178,9 @@ func createRouter(c *cluster.Cluster) (*mux.Router, error) {
 			//			"/exec/{name:.*}/start":         postContainerExecStart,
 			//			"/exec/{name:.*}/resize":        postContainerExecResize,
 		},
-		//#		"DELETE": {
-		//#			"/containers/{name:.*}": deleteContainers,
+		"DELETE": {
+			"/containers/{name:.*}": deleteContainers,
+		},
 		//			"/images/{name:.*}":     deleteImages,
 		//#		},
 		//		"OPTIONS": {
