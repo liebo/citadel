@@ -74,20 +74,22 @@ func postContainersRestart(c *cluster.Cluster, w http.ResponseWriter, r *http.Re
 }
 
 func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
-	var containers []dockerclient.Container
+	var (
+		err              error
+		containers       []*citadel.Container
+		dockerContainers []dockerclient.Container
+	)
 
-	for _, engine := range c.Engines() {
-		client, err := dockerclient.NewDockerClient(engine.Addr, nil)
-		if err == nil {
-			cs, _ := client.ListContainers(true)
-			for _, cc := range cs {
-				cc.Names[0] = "/" + engine.ID + cc.Names[0]
-			}
-			containers = append(containers, cs...)
-		}
+	if containers, err = c.ListContainers(); err != nil {
+		log.Errorf("Failed to list containers: %v", err)
+		return
 	}
 
-	b, _ := json.Marshal(containers)
+	for _, cs := range containers {
+		dockerContainers = append(dockerContainers, citadel.ToDockerContainer(cs))
+	}
+
+	b, _ := json.Marshal(dockerContainers)
 	w.Write(b)
 }
 

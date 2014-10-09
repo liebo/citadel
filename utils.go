@@ -3,6 +3,7 @@ package citadel
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/samalba/dockerclient"
 )
@@ -71,6 +72,25 @@ func parsePortInformation(info *dockerclient.ContainerInfo, c *Container) error 
 	return nil
 }
 
+func ToDockerContainer(c *Container) dockerclient.Container {
+	container := dockerclient.Container{
+		Id:      c.ID,
+		Names:   []string{"/" + c.Engine.ID + c.Name},
+		Created: c.Created,
+		Image:   c.Image.Name,
+		Command: strings.Join(c.Image.Args, " "),
+		Status:  c.State,
+	}
+	for _, port := range c.Ports {
+		container.Ports = append(container.Ports, dockerclient.Port{
+			PrivatePort: port.ContainerPort,
+			PublicPort:  port.Port,
+			Type:        port.Proto,
+		})
+	}
+	return container
+}
+
 func FromDockerContainer(id, image string, engine *Engine) (*Container, error) {
 	info, err := engine.client.InspectContainer(id)
 	if err != nil {
@@ -121,6 +141,7 @@ func FromDockerContainer(id, image string, engine *Engine) (*Container, error) {
 		State:  state,
 		Image: &Image{
 			Name:        image,
+			Args:        info.Config.Cmd,
 			Cpus:        float64(info.Config.CpuShares) / 100.0 * engine.Cpus,
 			Memory:      float64(info.Config.Memory / 1024 / 1024),
 			Volumes:     vols,
@@ -137,6 +158,10 @@ func FromDockerContainer(id, image string, engine *Engine) (*Container, error) {
 				MaximumRetryCount: info.HostConfig.RestartPolicy.MaximumRetryCount,
 			},
 		},
+	}
+
+	if created, err := time.Parse(time.RFC3339Nano, info.Created); err == nil {
+		container.Created = int(created.Unix())
 	}
 
 	if err := parsePortInformation(info, container); err != nil {

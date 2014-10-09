@@ -10,6 +10,9 @@ type Container struct {
 	// Name is the container's name
 	Name string `json:"name,omitempty"`
 
+	// Container creation time
+	Created int `json:"created,omitempty"`
+
 	// Image is the configuration from which the container was created
 	Image *Image `json:"image,omitempty"`
 
