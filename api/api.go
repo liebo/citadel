@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -113,6 +115,24 @@ func redirectContainer(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// FIXME: this is ugly
+func getContainerJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
+	container := c.ContainerByID(mux.Vars(r)["name"])
+	if container != nil {
+		resp, err := http.Get(container.Engine.Addr + "/containers/" + container.ID + "/json")
+		if err != nil {
+			log.Errorf("Unable to connect: %v", err)
+			return
+		}
+		data, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Errorf("Unable to get: %v", err)
+			return
+		}
+		w.Write(bytes.Replace(data, []byte("\"HostIp\":\"0.0.0.0\""), []byte(fmt.Sprintf("\"HostIp\":%q", container.Engine.IP)), -1))
+	}
+}
+
 func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
 	var (
 		err              error
@@ -175,7 +195,7 @@ func createRouter(c *cluster.Cluster) (*mux.Router, error) {
 			"/containers/json":              getContainersJSON,
 			"/containers/{name:.*}/export":  redirectContainer,
 			"/containers/{name:.*}/changes": redirectContainer,
-			"/containers/{name:.*}/json":    redirectContainer,
+			"/containers/{name:.*}/json":    getContainerJSON,
 			"/containers/{name:.*}/top":     redirectContainer,
 			"/containers/{name:.*}/logs":    redirectContainer,
 			//			"/containers/{name:.*}/attach/ws": wsContainersAttach,
