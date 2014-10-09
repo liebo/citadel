@@ -118,11 +118,21 @@ func (e *Engine) Create(c *Container, pullImage bool) error {
 		CpuShares:    int(i.Cpus * 100.0 / e.Cpus),
 		ExposedPorts: make(map[string]struct{}),
 		Volumes:      vols,
+		HostConfig: dockerclient.HostConfig{
+			PortBindings: make(map[string][]dockerclient.PortBinding),
+		},
 	}
 
 	for _, b := range i.BindPorts {
 		key := fmt.Sprintf("%d/%s", b.ContainerPort, b.Proto)
 		config.ExposedPorts[key] = struct{}{}
+		if _, ok := config.HostConfig.PortBindings[key]; !ok {
+			config.HostConfig.PortBindings[key] = []dockerclient.PortBinding{}
+		}
+		config.HostConfig.PortBindings[key] = append(config.HostConfig.PortBindings[key], dockerclient.PortBinding{
+			HostIp:   b.HostIp,
+			HostPort: fmt.Sprintf("%s", b.Port),
+		})
 	}
 
 	if pullImage {

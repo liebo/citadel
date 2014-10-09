@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/citadel/citadel"
 	"github.com/citadel/citadel/cluster"
@@ -29,6 +31,29 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 		fmt.Println("Create Error:", err)
 	}
 
+	var ports []*citadel.Port
+	for port, bindings := range config.HostConfig.PortBindings {
+		parts := strings.SplitN(port, "/", 2)
+		p, err := strconv.Atoi(parts[0])
+		if err != nil {
+			continue
+		}
+		for _, binding := range bindings {
+			hp, err := strconv.Atoi(binding.HostPort)
+			if err != nil {
+				continue
+			}
+			port := citadel.Port{
+				Proto:         parts[1],
+				HostIp:        binding.HostIp,
+				Port:          hp,
+				ContainerPort: p,
+			}
+			ports = append(ports, &port)
+		}
+	}
+
+	image.BindPorts = ports
 	image.Name = config.Image
 	image.Args = config.Cmd
 	image.Type = "service"
