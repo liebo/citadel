@@ -56,10 +56,8 @@ func (e *Engine) updateLoop() {
 	for {
 		select {
 		case <-e.ch:
-			log.Printf("Async refresh")
 			e.updateState()
 		case <-time.After(30 * time.Second):
-			log.Printf("Forcing state refresh for %s", e.ID)
 			e.updateState()
 		}
 	}
