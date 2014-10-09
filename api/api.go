@@ -78,7 +78,18 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 		err              error
 		containers       []*citadel.Container
 		dockerContainers []dockerclient.Container
+		all              bool
 	)
+
+	// Options parsing.
+	if err := r.ParseForm(); err != nil {
+		log.Errorf("Unable to parse form: %v", err)
+		return
+	}
+
+	if r.Form.Get("all") == "1" {
+		all = true
+	}
 
 	if containers, err = c.ListContainers(); err != nil {
 		log.Errorf("Failed to list containers: %v", err)
@@ -86,6 +97,10 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 	}
 
 	for _, cs := range containers {
+		// Skip stopped containers unless -a was specified.
+		if cs.State != "running" && !all {
+			continue
+		}
 		dockerContainers = append(dockerContainers, citadel.ToDockerContainer(cs))
 	}
 
