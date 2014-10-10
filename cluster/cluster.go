@@ -40,14 +40,15 @@ func New(manager citadel.ResourceManager, update time.Duration, engines ...*cita
 	return c, nil
 }
 
-func (c *Cluster) ContainerByID(ID string) *citadel.Container {
+func (c *Cluster) FindContainer(IdOrName string) *citadel.Container {
 	for _, e := range c.engines {
 		state, err := e.State()
 		if err != nil {
 			continue
 		}
 		for _, container := range state.Containers {
-			if strings.HasPrefix(container.ID, ID) {
+			// Match ID prefix, name, or engine/name.
+			if strings.HasPrefix(container.ID, IdOrName) || container.Name == "/"+IdOrName || e.ID+container.Name == IdOrName {
 				return container
 			}
 		}
@@ -149,7 +150,7 @@ func (c *Cluster) Restart(container *citadel.Container, timeout int) error {
 	return engine.Restart(container, timeout)
 }
 
-func (c *Cluster) Remove(container *citadel.Container) error {
+func (c *Cluster) Remove(container *citadel.Container, force bool) error {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
@@ -158,7 +159,7 @@ func (c *Cluster) Remove(container *citadel.Container) error {
 		return fmt.Errorf("engine with id %s is not in cluster", container.Engine.ID)
 	}
 
-	return engine.Remove(container)
+	return engine.Remove(container, force)
 }
 
 func (c *Cluster) Create(image *citadel.Image, pull bool) (*citadel.Container, error) {

@@ -64,11 +64,15 @@ func (e *Engine) Connect(config *tls.Config) error {
 
 func (e *Engine) updateLoop() {
 	for {
+		var err error
 		select {
 		case <-e.ch:
-			e.updateState()
+			err = e.updateState()
 		case <-time.After(30 * time.Second):
-			e.updateState()
+			err = e.updateState()
+		}
+		if err != nil {
+			log.Printf("[%s] Updated state failed: %v", e.ID, err)
 		}
 	}
 }
@@ -262,8 +266,8 @@ func (e *Engine) Restart(container *Container, timeout int) error {
 	return e.client.RestartContainer(container.ID, timeout)
 }
 
-func (e *Engine) Remove(container *Container) error {
-	if err := e.client.RemoveContainer(container.ID); err != nil {
+func (e *Engine) Remove(container *Container, force bool) error {
+	if err := e.client.RemoveContainer(container.ID, force); err != nil {
 		return err
 	}
 

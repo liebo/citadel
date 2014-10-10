@@ -78,7 +78,7 @@ func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Requ
 	}
 
 	name := mux.Vars(r)["name"]
-	container := c.ContainerByID(name)
+	container := c.FindContainer(name)
 	if container == nil {
 		log.Errorf("Container %s not found", name)
 		return
@@ -92,20 +92,26 @@ func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Requ
 }
 
 func deleteContainers(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Errorf("Unable to parse form: %v", err)
+		return
+	}
+
 	name := mux.Vars(r)["name"]
-	container := c.ContainerByID(name)
+	force := r.Form.Get("force") == "1"
+	container := c.FindContainer(name)
 	if container == nil {
 		log.Errorf("Container %s not found", name)
 		return
 	}
-	if err := c.Remove(container); err != nil {
+	if err := c.Remove(container, force); err != nil {
 		log.Errorf("Unable to remove %s: %v", name, err)
 		return
 	}
 }
 
 func redirectContainer(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
-	container := c.ContainerByID(mux.Vars(r)["name"])
+	container := c.FindContainer(mux.Vars(r)["name"])
 	if container != nil {
 		newURL, _ := url.Parse(container.Engine.Addr)
 		newURL.RawQuery = r.URL.RawQuery
@@ -138,7 +144,6 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 		err              error
 		containers       []*citadel.Container
 		dockerContainers []dockerclient.Container
-		all              bool
 	)
 
 	// Options parsing.
@@ -147,9 +152,7 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if r.Form.Get("all") == "1" {
-		all = true
-	}
+	all := r.Form.Get("all") == "1"
 
 	if containers, err = c.ListContainers(); err != nil {
 		log.Errorf("Failed to list containers: %v", err)
