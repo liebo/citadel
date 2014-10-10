@@ -123,7 +123,7 @@ func redirectContainer(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 
 // FIXME: this is ugly
 func getContainerJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
-	container := c.ContainerByID(mux.Vars(r)["name"])
+	container := c.FindContainer(mux.Vars(r)["name"])
 	if container != nil {
 		resp, err := http.Get(container.Engine.Addr + "/containers/" + container.ID + "/json")
 		if err != nil {
