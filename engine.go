@@ -12,26 +12,25 @@ import (
 	"github.com/samalba/dockerclient"
 )
 
-func NewEngine(id string, addr string, cpus float64, memory float64, labels []string) *Engine {
+func NewEngine(id string, addr string, cpus float64, memory float64) *Engine {
 	e := &Engine{
 		ID:     id,
 		Addr:   addr,
 		Cpus:   cpus,
 		Memory: memory,
-		Labels: labels,
+		Labels: make(map[string]string),
 		ch:     make(chan bool),
 	}
-	go e.updateLoop()
 	return e
 }
 
 type Engine struct {
-	ID     string   `json:"id,omitempty"`
-	IP     string   `json:"ip,omitempty"`
-	Addr   string   `json:"addr,omitempty"`
-	Cpus   float64  `json:"cpus,omitempty"`
-	Memory float64  `json:"memory,omitempty"`
-	Labels []string `json:"labels,omitempty"`
+	ID     string            `json:"id,omitempty"`
+	IP     string            `json:"ip,omitempty"`
+	Addr   string            `json:"addr,omitempty"`
+	Cpus   float64           `json:"cpus,omitempty"`
+	Memory float64           `json:"memory,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	mux          sync.Mutex
 	ch           chan bool
@@ -54,11 +53,32 @@ func (e *Engine) Connect(config *tls.Config) error {
 
 	e.client = c
 
-	// Force a state update before returning.
-	if err := e.updateState(); err != nil {
+	// Fetch the engine labels.
+	if err := e.fetchLabels(); err != nil {
+		e.client = nil
 		return err
 	}
 
+	// Force a state update before returning.
+	if err := e.updateState(); err != nil {
+		e.client = nil
+		return err
+	}
+
+	// Start the update loop.
+	go e.updateLoop()
+	return nil
+}
+
+func (e *Engine) fetchLabels() error {
+	info, err := e.client.Info()
+	if err != nil {
+		return err
+	}
+	e.Labels["driver"] = info.Driver
+	e.Labels["executiondriver"] = info.ExecutionDriver
+	e.Labels["kernelversion"] = info.KernelVersion
+	e.Labels["operatingsystem"] = info.OperatingSystem
 	return nil
 }
 
@@ -107,9 +127,14 @@ func (e *Engine) Create(c *Container, pullImage bool) error {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
+	labels := []string{}
+	for k, v := range i.Labels {
+		labels = append(labels, fmt.Sprintf("%s:%s", k, v))
+	}
+
 	env = append(env,
 		fmt.Sprintf("_citadel_type=%s", i.Type),
-		fmt.Sprintf("_citadel_labels=%s", strings.Join(i.Labels, ",")),
+		fmt.Sprintf("_citadel_labels=%s", strings.Join(labels, ",")),
 	)
 
 	vols := make(map[string]struct{})

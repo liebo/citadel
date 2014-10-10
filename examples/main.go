@@ -15,8 +15,11 @@ import (
 
 // temporary register 2 nodes
 func registerTestSlaves() {
+	// Ubuntu boxes
 	discovery.RegisterSlave("http://discovery.crosbymichael.com", "citadel_test", "cluster", "node1", "http://ec2-54-68-133-155.us-west-2.compute.amazonaws.com:4242")
 	discovery.RegisterSlave("http://discovery.crosbymichael.com", "citadel_test", "cluster", "node2", "http://ec2-54-69-225-30.us-west-2.compute.amazonaws.com:4242")
+	// Fedora
+	discovery.RegisterSlave("http://discovery.crosbymichael.com", "citadel_test", "cluster", "node3", "http://ec2-54-69-11-29.us-west-2.compute.amazonaws.com:4242")
 }
 
 func main() {
@@ -36,7 +39,7 @@ func main() {
 
 	var engines []*citadel.Engine
 	for _, node := range nodes {
-		engine := citadel.NewEngine(fmt.Sprintf("node-%x", md5.Sum([]byte(node))), node, 2048, 1, []string{})
+		engine := citadel.NewEngine(fmt.Sprintf("node-%x", md5.Sum([]byte(node))), node, 2048, 1)
 		if err := engine.Connect(nil); err != nil {
 			log.Fatalf("node.Connect: %v", err)
 		}
@@ -49,7 +52,9 @@ func main() {
 	}
 	defer c.Close()
 
-	if err := c.RegisterScheduler("service", &scheduler.LabelScheduler{}); err != nil {
+	scheduler := scheduler.NewMultiScheduler(&scheduler.LabelScheduler{}, &scheduler.HostScheduler{})
+
+	if err := c.RegisterScheduler("service", scheduler); err != nil {
 		log.Fatalf("c.RegisterScheduler: %v", err)
 	}
 

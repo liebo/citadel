@@ -32,7 +32,7 @@ type Image struct {
 	Type string `json:"type,omitempty"`
 
 	// Labels are matched with constraints on the engines
-	Labels []string `json:"labels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	// BindPorts ensures that the container has exclusive access to the specified ports
 	BindPorts []*Port `json:"bind_ports,omitempty"`

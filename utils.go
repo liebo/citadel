@@ -115,7 +115,7 @@ func FromDockerContainer(id, image string, engine *Engine) (*Container, error) {
 		cType       = ""
 		state       = "stopped"
 		networkMode = "bridge"
-		labels      = []string{}
+		labels      = map[string]string{}
 		env         = make(map[string]string)
 	)
 
@@ -127,7 +127,12 @@ func FromDockerContainer(id, image string, engine *Engine) (*Container, error) {
 		case "_citadel_type":
 			cType = v
 		case "_citadel_labels":
-			labels = strings.Split(v, ",")
+			for _, tuple := range strings.Split(v, ",") {
+				parts := strings.SplitN(tuple, ":", 2)
+				if len(parts) == 2 {
+					labels[parts[0]] = labels[parts[1]]
+				}
+			}
 		case "HOME", "DEBIAN_FRONTEND", "PATH":
 			continue
 		default:

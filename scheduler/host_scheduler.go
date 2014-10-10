@@ -14,21 +14,5 @@ func (h *HostScheduler) Schedule(c *citadel.Image, e *citadel.Engine) (bool, err
 		return true, nil
 	}
 
-	return h.validHost(e, c.Labels), nil
-}
-
-func (h *HostScheduler) validHost(e *citadel.Engine, labels []string) bool {
-	for _, label := range labels {
-		parts := strings.Split(label, "host:")
-		if len(parts) != 2 {
-			return false
-		}
-
-		host := parts[1]
-		if e.ID == host {
-			return true
-		}
-	}
-
-	return false
+	return strings.ToLower(c.Labels["host"]) == strings.ToLower(e.ID), nil
 }

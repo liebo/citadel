@@ -1,6 +1,11 @@
 package scheduler
 
-import "github.com/citadel/citadel"
+import (
+	"log"
+	"strings"
+
+	"github.com/citadel/citadel"
+)
 
 type LabelScheduler struct {
 }
@@ -13,22 +18,18 @@ func (l *LabelScheduler) Schedule(c *citadel.Image, e *citadel.Engine) (bool, er
 	return false, nil
 }
 
-func (l *LabelScheduler) contains(r *citadel.Engine, constraints []string) bool {
-	for _, c := range constraints {
-		if !l.resourceContains(r, c) {
+func (l *LabelScheduler) contains(r *citadel.Engine, constraints map[string]string) bool {
+	for k, v := range constraints {
+		// Skip "host" constraint - it will be fullfilled by the host scheduler.
+		if k == "host" {
+			continue
+		}
+		k, v = strings.ToLower(k), strings.ToLower(v)
+		if strings.ToLower(r.Labels[k]) != v {
+			log.Printf("Discarding %s: %s != %s", r.ID, r.Labels[k], v)
 			return false
 		}
 	}
 
 	return true
-}
-
-func (l *LabelScheduler) resourceContains(r *citadel.Engine, c string) bool {
-	for _, l := range r.Labels {
-		if l == c {
-			return true
-		}
-	}
-
-	return false
 }

@@ -62,6 +62,21 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 	image.Type = "service"
 	image.ContainerName = r.Form.Get("name")
 
+	image.Environment = make(map[string]string)
+	image.Labels = make(map[string]string)
+	// Fill out env and labels.
+	for _, e := range config.Env {
+		switch {
+		case strings.HasPrefix(e, "constraint:"):
+			constraint := strings.TrimLeft(e, "constraint:")
+			parts := strings.SplitN(constraint, "=", 2)
+			image.Labels[parts[0]] = parts[1]
+		default:
+			parts := strings.SplitN(e, "=", 2)
+			image.Environment[parts[0]] = parts[1]
+		}
+	}
+
 	container, err := c.Create(&image, true)
 	if err == nil {
 		fmt.Fprintf(w, "{%q:%q}", "Id", container.ID)
