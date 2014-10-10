@@ -13,16 +13,6 @@ import (
 	"github.com/citadel/citadel/scheduler"
 )
 
-type logHandler struct {
-}
-
-func (l *logHandler) Handle(e *citadel.Event) error {
-	log.Printf("type: %s time: %s image: %s container: %s\n",
-		e.Type, e.Time.Format(time.RubyDate), e.Container.Image.Name, e.Container.ID)
-
-	return nil
-}
-
 // temporary register 2 nodes
 func registerTestSlaves() {
 	discovery.RegisterSlave("http://discovery.crosbymichael.com", "citadel_test", "cluster", "node1", "http://ec2-54-68-133-155.us-west-2.compute.amazonaws.com:4242")
@@ -61,10 +51,6 @@ func main() {
 
 	if err := c.RegisterScheduler("service", &scheduler.LabelScheduler{}); err != nil {
 		log.Fatalf("c.RegisterScheduler: %v", err)
-	}
-
-	if err := c.Events(&logHandler{}); err != nil {
-		log.Fatalf("c.Events: %v", err)
 	}
 
 	/*	for {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -197,13 +198,44 @@ func getInfo(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type logHandler struct {
+	w io.Writer
+	c chan struct{}
+}
+
+func (l *logHandler) Handle(e *citadel.Event) error {
+	_, err := fmt.Fprintf(l.w, "{%q:%q,%q:%q,%q:%q,%q:%d}", "status", e.Type, "id", e.Container.ID, "from", e.Container.Image.Name+" node:"+e.Container.Engine.ID, "time", e.Time.Unix())
+	if err != nil {
+		close(l.c)
+	}
+
+	if f, ok := l.w.(http.Flusher); ok {
+		f.Flush()
+	}
+	return err
+}
+
+func getEvents(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
+	lh := logHandler{
+		w,
+		make(chan struct{}),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := c.Events(&lh); err != nil {
+		log.Errorf("%v", err)
+	}
+
+	<-lh.c
+
+}
+
 func createRouter(c *cluster.Cluster) (*mux.Router, error) {
 	r := mux.NewRouter()
 	m := map[string]map[string]HttpApiFunc{
 		"GET": {
-			"/_ping": ping,
-			//#			"/events": getEvents,
-			"/info": getInfo,
+			"/_ping":  ping,
+			"/events": getEvents,
+			"/info":   getInfo,
 			//#			"/version": getVersion,
 			//			"/images/json":                    getImagesJSON,
 			//			"/images/viz":                     getImagesViz,

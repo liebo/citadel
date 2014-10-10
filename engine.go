@@ -281,9 +281,6 @@ func (e *Engine) Remove(container *Container, force bool) error {
 }
 
 func (e *Engine) Events(h EventHandler) error {
-	if e.eventHandler != nil {
-		return fmt.Errorf("event handler already set")
-	}
 	e.eventHandler = h
 
 	e.client.StartMonitorEvents(e.handler)
