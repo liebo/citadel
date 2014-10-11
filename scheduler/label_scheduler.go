@@ -25,11 +25,11 @@ func (l *LabelScheduler) contains(r *citadel.Engine, constraints map[string]stri
 			continue
 		}
 		k, v = strings.ToLower(k), strings.ToLower(v)
-		if strings.ToLower(r.Labels[k]) != v {
-			log.Printf("Discarding %s: %s != %s", r.ID, r.Labels[k], v)
+		if !strings.Contains(strings.ToLower(r.Labels[k]), v) {
+			log.Printf("Discarding %s (constraint: %s): %s != %s", r.ID, k, r.Labels[k], v)
 			return false
 		}
+		log.Printf("%s satisfies %s = %s", r.ID, k, v)
 	}
-
 	return true
 }

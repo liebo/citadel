@@ -52,7 +52,7 @@ func main() {
 	}
 	defer c.Close()
 
-	scheduler := scheduler.NewMultiScheduler(&scheduler.LabelScheduler{}, &scheduler.HostScheduler{})
+	scheduler := &scheduler.LabelScheduler{}
 
 	if err := c.RegisterScheduler("service", scheduler); err != nil {
 		log.Fatalf("c.RegisterScheduler: %v", err)
