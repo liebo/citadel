@@ -68,6 +68,9 @@ func (e *Engine) Connect(config *tls.Config) error {
 	// Start the update loop.
 	go e.updateLoop()
 
+	// Start monitoring events from the Engine.
+	e.client.StartMonitorEvents(e.handler)
+
 	return nil
 }
 
@@ -323,9 +326,6 @@ func (e *Engine) Remove(container *Container, force bool) error {
 
 func (e *Engine) Events(h EventHandler) error {
 	e.eventHandler = h
-
-	e.client.StartMonitorEvents(e.handler)
-
 	return nil
 }
 
@@ -367,6 +367,11 @@ func (e *Engine) String() string {
 func (e *Engine) handler(ev *dockerclient.Event, args ...interface{}) {
 	// Something changed - refresh our internal state.
 	e.updateStateAsync()
+
+	// If there is no event handler registered, abort right now.
+	if e.eventHandler == nil {
+		return
+	}
 
 	event := &Event{
 		Engine: e,
