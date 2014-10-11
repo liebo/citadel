@@ -58,6 +58,10 @@ func main() {
 		log.Fatalf("c.RegisterScheduler: %v", err)
 	}
 
+	if err := c.Events(api.EventsHandler); err != nil {
+		log.Fatalf("c.Events: %v", err)
+	}
+
 	/*	for {
 			fmt.Println("")
 			for _, containers := range c.Containers {

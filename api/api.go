@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/citadel/citadel"
 	"github.com/citadel/citadel/cluster"
@@ -17,6 +18,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/samalba/dockerclient"
 )
+
+func init() {
+	EventsHandler = &eventsHandler{
+		ws: make(map[string]io.Writer),
+		cs: make(map[string]chan struct{}),
+	}
+}
 
 type HttpApiFunc func(c *cluster.Cluster, w http.ResponseWriter, r *http.Request)
 
@@ -213,35 +221,43 @@ func getInfo(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type logHandler struct {
-	w io.Writer
-	c chan struct{}
+type eventsHandler struct {
+	sync.RWMutex
+	ws map[string]io.Writer
+	cs map[string]chan struct{}
 }
 
-func (l *logHandler) Handle(e *citadel.Event) error {
-	_, err := fmt.Fprintf(l.w, "{%q:%q,%q:%q,%q:%q,%q:%d}", "status", e.Type, "id", e.Container.ID, "from", e.Container.Image.Name+" node:"+e.Container.Engine.ID, "time", e.Time.Unix())
-	if err != nil {
-		close(l.c)
-	}
+var EventsHandler *eventsHandler
 
-	if f, ok := l.w.(http.Flusher); ok {
-		f.Flush()
+func (eh *eventsHandler) Handle(e *citadel.Event) error {
+	eh.RLock()
+	str := fmt.Sprintf("{%q:%q,%q:%q,%q:%q,%q:%d}", "status", e.Type, "id", e.Container.ID, "from", e.Container.Image.Name+" node:"+e.Container.Engine.ID, "time", e.Time.Unix())
+
+	for key, w := range eh.ws {
+		if _, err := fmt.Fprintf(w, str); err != nil {
+			close(eh.cs[key])
+			delete(eh.ws, key)
+			delete(eh.cs, key)
+			continue
+		}
+
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+
 	}
-	return err
+	eh.RUnlock()
+	return nil
 }
 
 func getEvents(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
-	lh := logHandler{
-		w,
-		make(chan struct{}),
-	}
+	EventsHandler.Lock()
+	EventsHandler.ws[r.RemoteAddr] = w
+	EventsHandler.cs[r.RemoteAddr] = make(chan struct{})
+	EventsHandler.Unlock()
 	w.Header().Set("Content-Type", "application/json")
-	if err := c.Events(&lh); err != nil {
-		log.Errorf("%v", err)
-	}
 
-	<-lh.c
-
+	<-EventsHandler.cs[r.RemoteAddr]
 }
 
 func createRouter(c *cluster.Cluster) (*mux.Router, error) {
