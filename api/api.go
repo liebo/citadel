@@ -68,7 +68,7 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 	for _, e := range config.Env {
 		switch {
 		case strings.HasPrefix(e, "constraint:"):
-			constraint := strings.TrimLeft(e, "constraint:")
+			constraint := strings.TrimPrefix(e, "constraint:")
 			parts := strings.SplitN(constraint, "=", 2)
 			image.Labels[parts[0]] = parts[1]
 		default:
