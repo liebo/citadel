@@ -67,6 +67,7 @@ func (e *Engine) Connect(config *tls.Config) error {
 
 	// Start the update loop.
 	go e.updateLoop()
+
 	return nil
 }
 
@@ -180,8 +181,23 @@ func (e *Engine) Create(c *Container, pullImage bool) error {
 	}
 
 	if c.ID, err = client.CreateContainer(config, c.Name); err != nil {
-		return err
+		// If the error is other than not found, abort immediately.
+		if err != dockerclient.ErrNotFound {
+			return err
+		}
+		// Otherwise, try to pull the image...
+		if err = e.Pull(i.Name); err != nil {
+			return err
+		}
+		// ...And try again.
+		if c.ID, err = client.CreateContainer(config, c.Name); err != nil {
+			return err
+		}
 	}
+
+	// Set the state to pending immediately.
+	c.State = "pending"
+	c.Created = int(time.Now().Unix())
 
 	if err = e.updatePortInformation(c); err != nil {
 		return err

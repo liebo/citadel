@@ -77,7 +77,7 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	container, err := c.Create(&image, true)
+	container, err := c.Create(&image, false)
 	if err == nil {
 		fmt.Fprintf(w, "{%q:%q}", "Id", container.ID)
 	} else {
@@ -177,7 +177,7 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 
 	for _, cs := range containers {
 		// Skip stopped containers unless -a was specified.
-		if cs.State != "running" && !all {
+		if cs.State != "running" && cs.State != "pending" && !all {
 			continue
 		}
 		dockerContainers = append(dockerContainers, citadel.ToDockerContainer(cs))
