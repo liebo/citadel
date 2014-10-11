@@ -89,7 +89,8 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 	if err == nil {
 		fmt.Fprintf(w, "{%q:%q}", "Id", container.ID)
 	} else {
-		fmt.Println("Create Error:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -104,20 +105,20 @@ func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Requ
 	name := mux.Vars(r)["name"]
 	container := c.FindContainer(name)
 	if container == nil {
-		log.Errorf("Container %s not found", name)
+		http.Error(w, fmt.Sprintf("Container %s not found", name), http.StatusNotFound)
 		return
 	}
 
 	if err := c.Start(container, &image); err == nil {
 		fmt.Fprintf(w, "{%q:%q}", "Id", container.ID)
 	} else {
-		fmt.Println("Start Error2:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func deleteContainers(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		log.Errorf("Unable to parse form: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -125,11 +126,11 @@ func deleteContainers(c *cluster.Cluster, w http.ResponseWriter, r *http.Request
 	force := r.Form.Get("force") == "1"
 	container := c.FindContainer(name)
 	if container == nil {
-		log.Errorf("Container %s not found", name)
+		http.Error(w, fmt.Sprintf("Container %s not found", name), http.StatusNotFound)
 		return
 	}
 	if err := c.Remove(container, force); err != nil {
-		log.Errorf("Unable to remove %s: %v", name, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -151,12 +152,12 @@ func getContainerJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Request
 	if container != nil {
 		resp, err := http.Get(container.Engine.Addr + "/containers/" + container.ID + "/json")
 		if err != nil {
-			log.Errorf("Unable to connect: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Errorf("Unable to get: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Write(bytes.Replace(data, []byte("\"HostIp\":\"0.0.0.0\""), []byte(fmt.Sprintf("\"HostIp\":%q", container.Engine.IP)), -1))
@@ -172,14 +173,14 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 
 	// Options parsing.
 	if err := r.ParseForm(); err != nil {
-		log.Errorf("Unable to parse form: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	all := r.Form.Get("all") == "1"
 
 	if containers, err = c.ListContainers(); err != nil {
-		log.Errorf("Failed to list containers: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -195,30 +196,31 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 }
 
 func getInfo(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
-	if containers, err := c.ListContainers(); err != nil {
-		log.Errorf("Failed to list containers: %v", err)
-	} else {
-		var driverStatus [][2]string
-
-		for _, engine := range c.Engines() {
-			driverStatus = append(driverStatus, [2]string{engine.ID, engine.Addr})
-		}
-		info := struct {
-			Containers                             int
-			Driver, ExecutionDriver                string
-			DriverStatus                           [][2]string
-			KernelVersion, OperatingSystem         string
-			MemoryLimit, SwapLimit, IPv4Forwarding bool
-		}{
-			len(containers),
-			"libcluster", "libcluster",
-			driverStatus,
-			"N/A", "N/A",
-			true, true, true,
-		}
-
-		json.NewEncoder(w).Encode(info)
+	containers, err := c.ListContainers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	var driverStatus [][2]string
+
+	for _, engine := range c.Engines() {
+		driverStatus = append(driverStatus, [2]string{engine.ID, engine.Addr})
+	}
+	info := struct {
+		Containers                             int
+		Driver, ExecutionDriver                string
+		DriverStatus                           [][2]string
+		KernelVersion, OperatingSystem         string
+		MemoryLimit, SwapLimit, IPv4Forwarding bool
+	}{
+		len(containers),
+		"libcluster", "libcluster",
+		driverStatus,
+		"N/A", "N/A",
+		true, true, true,
+	}
+
+	json.NewEncoder(w).Encode(info)
 }
 
 type eventsHandler struct {
