@@ -192,7 +192,7 @@ func (e *Engine) Restart(container *Container, timeout int) error {
 }
 
 func (e *Engine) Remove(container *Container) error {
-	return e.client.RemoveContainer(container.ID)
+	return e.client.RemoveContainer(container.ID, true)
 }
 
 func (e *Engine) Events(h EventHandler) error {
