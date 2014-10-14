@@ -179,6 +179,10 @@ func (e *Engine) ListContainers(all bool) ([]*Container, error) {
 	return out, nil
 }
 
+func (e *Engine) Logs(container *Container) ([]byte, error) {
+	return e.client.ContainerLogs(container.ID)
+}
+
 func (e *Engine) Kill(container *Container, sig int) error {
 	return e.client.KillContainer(container.ID)
 }
