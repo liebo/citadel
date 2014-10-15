@@ -73,8 +73,6 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 	image.Cpus = float64(config.CpuShares)
 	image.ContainerName = r.Form.Get("name")
 
-	fmt.Printf("Links: %#v\n", config.HostConfig.Links)
-
 	image.Environment = make(map[string]string)
 	image.Labels = make(map[string]string)
 	// Fill out env and labels.
@@ -100,9 +98,10 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 }
 
 func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
-	var hostConfig dockerclient.HostConfig
+	var image citadel.Image
+	var config dockerclient.HostConfig
 
-	if err := json.NewDecoder(r.Body).Decode(&hostConfig); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
 		fmt.Println("Start Error1:", err)
 	}
 
@@ -113,7 +112,7 @@ func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := c.StartRAW(container, &hostConfig); err == nil {
+	if err := c.Start(container, &image); err == nil {
 		fmt.Fprintf(w, "{%q:%q}", "Id", container.ID)
 	} else {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -185,11 +184,6 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 
 	if containers, err = c.ListContainers(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if len(containers) == 0 {
-		fmt.Fprintln(w, "[]")
 		return
 	}
 

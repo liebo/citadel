@@ -252,10 +252,6 @@ func (e *Engine) Start(c *Container, i *Image) error {
 	return e.client.StartContainer(c.ID, hostConfig)
 }
 
-func (e *Engine) StartRAW(c *Container, hostConfig *dockerclient.HostConfig) error {
-	return e.client.StartContainer(c.ID, hostConfig)
-}
-
 func (e *Engine) ListImages() ([]string, error) {
 	images, err := e.client.ListImages()
 	if err != nil {

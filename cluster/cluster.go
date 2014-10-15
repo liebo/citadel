@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/citadel/citadel"
-	"github.com/samalba/dockerclient"
 )
 
 var (
@@ -210,7 +209,6 @@ func (c *Cluster) Create(image *citadel.Image, pull bool) (*citadel.Container, e
 	}
 	return container, nil
 }
-
 func (c *Cluster) Start(container *citadel.Container, image *citadel.Image) error {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -221,18 +219,6 @@ func (c *Cluster) Start(container *citadel.Container, image *citadel.Image) erro
 	}
 
 	return engine.Start(container, image)
-}
-
-func (c *Cluster) StartRAW(container *citadel.Container, hostConfig *dockerclient.HostConfig) error {
-	c.mux.Lock()
-	defer c.mux.Unlock()
-
-	engine := c.engines[container.Engine.ID]
-	if engine == nil {
-		return fmt.Errorf("engine with id %s is not in cluster", container.Engine.ID)
-	}
-
-	return engine.StartRAW(container, hostConfig)
 }
 
 // Engines returns the engines registered in the cluster
