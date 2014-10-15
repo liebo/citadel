@@ -64,6 +64,11 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 			ports = append(ports, &port)
 		}
 	}
+
+	for port, _ := range config.ExposedPorts {
+		image.ExposedPorts = append(image.ExposedPorts, port)
+	}
+
 	image.Publish = config.HostConfig.PublishAllPorts
 	image.BindPorts = ports
 	image.Name = config.Image
@@ -98,13 +103,6 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 }
 
 func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Request) {
-	var image citadel.Image
-	var config dockerclient.HostConfig
-
-	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
-		fmt.Println("Start Error1:", err)
-	}
-
 	name := mux.Vars(r)["name"]
 	container := c.FindContainer(name)
 	if container == nil {
@@ -112,7 +110,7 @@ func postContainersStart(c *cluster.Cluster, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := c.Start(container, &image); err == nil {
+	if err := c.Start(container); err == nil {
 		fmt.Fprintf(w, "{%q:%q}", "Id", container.ID)
 	} else {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
