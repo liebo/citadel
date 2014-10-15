@@ -69,6 +69,8 @@ func postContainersCreate(c *cluster.Cluster, w http.ResponseWriter, r *http.Req
 	image.Name = config.Image
 	image.Args = config.Cmd
 	image.Type = "service"
+	image.Memory = float64(config.Memory) / 1024 / 1024
+	image.Cpus = float64(config.CpuShares)
 	image.ContainerName = r.Form.Get("name")
 
 	image.Environment = make(map[string]string)

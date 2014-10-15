@@ -42,7 +42,7 @@ func Master(url, addr string) error {
 				}
 
 				if !found {
-					engine := citadel.NewEngine(fmt.Sprintf("node-%x", md5.Sum([]byte(node))), node, 2048, 1)
+					engine := citadel.NewEngine(fmt.Sprintf("node-%x", md5.Sum([]byte(node))), node, 1, 2048)
 
 					if err := engine.Connect(nil); err == nil {
 						log.Println("Adding new node:", engine.ID)
