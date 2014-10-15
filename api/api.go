@@ -171,7 +171,7 @@ func getContainersJSON(c *cluster.Cluster, w http.ResponseWriter, r *http.Reques
 	var (
 		err              error
 		containers       []*citadel.Container
-		dockerContainers []dockerclient.Container
+		dockerContainers = []dockerclient.Container{}
 	)
 
 	// Options parsing.
