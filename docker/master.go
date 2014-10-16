@@ -20,7 +20,10 @@ func Master(url, addr string) error {
 	}
 	defer c.Close()
 
-	scheduler := scheduler.NewMultiScheduler(&scheduler.HostScheduler{}, &scheduler.LabelScheduler{})
+	scheduler := scheduler.NewMultiScheduler(
+		&scheduler.HostScheduler{},
+		&scheduler.PortScheduler{},
+		&scheduler.LabelScheduler{})
 	if err := c.RegisterScheduler("service", scheduler); err != nil {
 		return err
 	}
