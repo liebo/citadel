@@ -3,6 +3,7 @@ package citadel
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -179,7 +180,7 @@ func (e *Engine) ListContainers(all bool) ([]*Container, error) {
 	return out, nil
 }
 
-func (e *Engine) Logs(container *Container, stdout bool, stderr bool) ([]byte, error) {
+func (e *Engine) Logs(container *Container, stdout bool, stderr bool) (io.ReadCloser, error) {
 	return e.client.ContainerLogs(container.ID, stdout, stderr)
 }
 
