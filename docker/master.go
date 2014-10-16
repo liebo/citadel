@@ -28,10 +28,6 @@ func Master(url, addr string) error {
 		return err
 	}
 
-	if err := c.Events(api.EventsHandler); err != nil {
-		return err
-	}
-
 	go func() {
 		nodes, err := discovery.FetchSlavesRaw(url)
 		if err == nil {
@@ -50,6 +46,7 @@ func Master(url, addr string) error {
 					if err := engine.Connect(nil); err == nil {
 						log.Println("Adding new node:", engine.ID)
 						c.AddEngine(engine)
+						engine.Events(api.EventsHandler)
 					}
 				}
 			}
