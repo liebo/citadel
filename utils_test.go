@@ -74,6 +74,18 @@ func TestParseImageNameCustomRegistryPort(t *testing.T) {
 	}
 }
 
+func TestParseImageNameCustomRegistryPortNamespace(t *testing.T) {
+	image := "registry.citadel.com:49153/namespace/foo:bar"
+	imageInfo := ParseImageName(image)
+	if imageInfo.Name != "registry.citadel.com:49153/namespace/foo" {
+		t.Fatalf("expected name registry.citadel.com:49153/namespace/foo; received %s", imageInfo.Name)
+	}
+
+	if imageInfo.Tag != "bar" {
+		t.Fatalf("expected tag bar; received %s", imageInfo.Tag)
+	}
+}
+
 func TestParseImageNameCustomRegistryPortNoTag(t *testing.T) {
 	image := "registry.citadel.com:49153/foo"
 	imageInfo := ParseImageName(image)

@@ -164,8 +164,8 @@ func ParseImageName(name string) *ImageInfo {
 		}
 	case strings.Index(name, "/") != -1:
 		parts := strings.Split(name, "/")
-		n := parts[0]
-		t := parts[1]
+		n := strings.Join(parts[:len(parts)-1], "/")
+		t := parts[len(parts)-1]
 		if strings.Index(t, ":") != -1 {
 			tparts := strings.Split(t, ":")
 			n = fmt.Sprintf("%s/%s", n, tparts[0])
