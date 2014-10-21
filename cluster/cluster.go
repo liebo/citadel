@@ -3,6 +3,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/citadel/citadel"
@@ -104,6 +105,18 @@ func (c *Cluster) Kill(container *citadel.Container, sig int) error {
 	}
 
 	return engine.Kill(container, sig)
+}
+
+func (c *Cluster) Logs(container *citadel.Container, stdout bool, stderr bool) (io.ReadCloser, error) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	engine := c.engines[container.Engine.ID]
+	if engine == nil {
+		return nil, fmt.Errorf("engine with id %s is not in cluster", container.Engine.ID)
+	}
+
+	return engine.Logs(container, stdout, stderr)
 }
 
 func (c *Cluster) Stop(container *citadel.Container) error {
