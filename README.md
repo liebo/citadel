@@ -9,14 +9,14 @@ A docker centric package for scheduling containers on a docker cluster.
 constraints required in the decision making of where this container should be run on the cluster.
 This is the json representation of what a sample request would look like:
 
-```json
-{
-    "image": "crosbymichael/redis",
-    "cpus": "0.2",
-    "memory": 512,
-    "type": "service"
-}
-```
+  ```json
+  {
+      "image": "crosbymichael/redis",
+      "cpus": "0.2",
+      "memory": 512,
+      "type": "service"
+  }
+  ```
 
 2. Depending on the container type, service, batch, etc..., a specific scheduler is passed the container 
 information for making the scheduling decision.  After the scheduler has made the decision it will send
@@ -29,22 +29,22 @@ to the original requester along with information about the resource that can run
 are free to act on that information as they please.  A sample response json representation of a response
 will look like:
 
-```json
-{
-    "container":{
-        "image": "crosbymichael/redis",
-        "cpus": "0.2",
-        "memory": 512,
-        "type": "service"
-    },
-    "resource": {
-        "id": "12345abc",
-        "addr": "192.168.56.8:4243",
-        "total_cpus": 8,
-        "total_memory": 32000
-    }
-}
-```
+  ```json
+  {
+      "container":{
+          "image": "crosbymichael/redis",
+          "cpus": "0.2",
+          "memory": 512,
+          "type": "service"
+      },
+      "resource": {
+          "id": "12345abc",
+          "addr": "192.168.56.8:4243",
+          "total_cpus": 8,
+          "total_memory": 32000
+     }
+  }
+  ```
 
 4. The cluster manager will need a way to receive and modify the cluster state.  This will be provided
 by a `Registry` that the consumer of the library provides.
