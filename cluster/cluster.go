@@ -81,15 +81,12 @@ func (c *Cluster) ListContainers(all bool) ([]*citadel.Container, error) {
 	out := []*citadel.Container{}
 
 	for _, e := range c.engines {
-		containers, err := e.ListContainers(all)
-		if err != nil {
-			return nil, err
-		}
+		containers, _ := e.ListContainers(all)
 
 		out = append(out, containers...)
 	}
 
-	return out, nil
+	return out
 }
 
 func (c *Cluster) Kill(container *citadel.Container, sig int) error {
