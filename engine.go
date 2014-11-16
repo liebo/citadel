@@ -184,8 +184,9 @@ func (e *Engine) Logs(container *Container, stdout bool, stderr bool) (io.ReadCl
 	logopts := &dockerclient.LogOptions{
 		Stdout:     stdout,
 		Stderr:     stderr,
-		Timestamps: true,
+		Timestamps: false,
 		Follow:     false,
+		Tail:       0,
 	}
 	return e.client.ContainerLogs(container.ID, logopts)
 }
