@@ -163,7 +163,7 @@ func (e *Engine) updatePortInformation(c *Container) error {
 func (e *Engine) ListContainers(all bool) ([]*Container, error) {
 	out := []*Container{}
 
-	c, err := e.client.ListContainers(all)
+	c, err := e.client.ListContainers(all, true)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,13 @@ func (e *Engine) ListContainers(all bool) ([]*Container, error) {
 }
 
 func (e *Engine) Logs(container *Container, stdout bool, stderr bool) (io.ReadCloser, error) {
-	return e.client.ContainerLogs(container.ID, stdout, stderr)
+	logopts := &dockerclient.LogOptions{
+		Stdout:     stdout,
+		Stderr:     stderr,
+		Timestamps: true,
+		Follow:     false,
+	}
+	return e.client.ContainerLogs(container.ID, logopts)
 }
 
 func (e *Engine) Kill(container *Container, sig int) error {
