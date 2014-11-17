@@ -163,7 +163,7 @@ func (e *Engine) updatePortInformation(c *Container) error {
 func (e *Engine) ListContainers(all bool) ([]*Container, error) {
 	out := []*Container{}
 
-	c, err := e.client.ListContainers(all, true)
+	c, err := e.client.ListContainers(all, true, "")
 	if err != nil {
 		return nil, err
 	}
