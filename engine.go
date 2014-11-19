@@ -42,8 +42,7 @@ func (e *Engine) IsConnected() bool {
 }
 
 func (e *Engine) Pull(image string) error {
-	imageInfo := ParseImageName(image)
-	if err := e.client.PullImage(imageInfo.Name, imageInfo.Tag); err != nil {
+	if err := e.client.PullImage(image); err != nil {
 		return err
 	}
 	return nil
@@ -163,7 +162,7 @@ func (e *Engine) updatePortInformation(c *Container) error {
 func (e *Engine) ListContainers(all bool) ([]*Container, error) {
 	out := []*Container{}
 
-	c, err := e.client.ListContainers(all)
+	c, err := e.client.ListContainers(all, true, "")
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +180,14 @@ func (e *Engine) ListContainers(all bool) ([]*Container, error) {
 }
 
 func (e *Engine) Logs(container *Container, stdout bool, stderr bool) (io.ReadCloser, error) {
-	return e.client.ContainerLogs(container.ID, stdout, stderr)
+	logopts := &dockerclient.LogOptions{
+		Stdout:     stdout,
+		Stderr:     stderr,
+		Timestamps: false,
+		Follow:     false,
+		Tail:       0,
+	}
+	return e.client.ContainerLogs(container.ID, logopts)
 }
 
 func (e *Engine) Kill(container *Container, sig int) error {
