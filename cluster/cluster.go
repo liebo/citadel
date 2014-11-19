@@ -77,7 +77,7 @@ func (c *Cluster) RemoveEngine(e *citadel.Engine) error {
 }
 
 // ListContainers returns all the containers running in the cluster
-func (c *Cluster) ListContainers(all bool) ([]*citadel.Container, error) {
+func (c *Cluster) ListContainers(all bool) []*citadel.Container {
 	out := []*citadel.Container{}
 
 	for _, e := range c.engines {
