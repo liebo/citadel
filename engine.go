@@ -81,9 +81,9 @@ func (e *Engine) Start(c *Container, pullImage bool) error {
 		Domainname:   i.Domainname,
 		Image:        i.Name,
 		Cmd:          i.Args,
-		Memory:       int(i.Memory) * 1024 * 1024,
+		Memory:       int64(i.Memory) * 1024 * 1024,
 		Env:          env,
-		CpuShares:    int(i.Cpus * 100.0 / e.Cpus),
+		CpuShares:    int64(i.Cpus * 100.0 / e.Cpus),
 		ExposedPorts: make(map[string]struct{}),
 		Volumes:      vols,
 	}

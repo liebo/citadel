@@ -61,7 +61,7 @@ type Image struct {
 
 type RestartPolicy struct {
 	Name              string `json:"name,omitempty"`
-	MaximumRetryCount int    `json:"maximum_retry,omitempty"`
+	MaximumRetryCount int64  `json:"maximum_retry,omitempty"`
 }
 
 func (i *Image) String() string {
