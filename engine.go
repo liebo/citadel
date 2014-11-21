@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -191,7 +192,7 @@ func (e *Engine) Logs(container *Container, stdout bool, stderr bool) (io.ReadCl
 }
 
 func (e *Engine) Kill(container *Container, sig int) error {
-	return e.client.KillContainer(container.ID)
+	return e.client.KillContainer(container.ID, strconv.Itoa(sig))
 }
 
 func (e *Engine) Stop(container *Container) error {
