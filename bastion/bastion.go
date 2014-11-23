@@ -80,11 +80,7 @@ func engines(w http.ResponseWriter, r *http.Request) {
 func containers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
 
-	containers, err := clusterManager.ListContainers(false)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	containers := clusterManager.ListContainers(false)
 	if err := json.NewEncoder(w).Encode(containers); err != nil {
 		log.Println(err)
 	}
