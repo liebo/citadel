@@ -206,6 +206,10 @@ func (e *Engine) Remove(container *Container) error {
 	return e.client.RemoveContainer(container.ID, true)
 }
 
+func (e *Engine) Version() (*dockerclient.Version, error) {
+	return e.client.Version()
+}
+
 func (e *Engine) Events(h EventHandler) error {
 	if e.eventHandler != nil {
 		return fmt.Errorf("event handler already set")
