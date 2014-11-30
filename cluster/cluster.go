@@ -222,7 +222,7 @@ func (c *Cluster) Engines() []*citadel.Engine {
 }
 
 // Info returns information about the cluster
-func (c *Cluster) ClusterInfo() (*citadel.ClusterInfo, error) {
+func (c *Cluster) ClusterInfo() *citadel.ClusterInfo {
 	containerCount := 0
 	imageCount := 0
 	engineCount := len(c.engines)
@@ -233,7 +233,8 @@ func (c *Cluster) ClusterInfo() (*citadel.ClusterInfo, error) {
 	for _, e := range c.engines {
 		c, err := e.ListContainers(false)
 		if err != nil {
-			return nil, err
+			// skip engines that are not available
+			continue
 		}
 		for _, cnt := range c {
 			reservedCpus += cnt.Image.Cpus
@@ -241,7 +242,8 @@ func (c *Cluster) ClusterInfo() (*citadel.ClusterInfo, error) {
 		}
 		i, err := e.ListImages()
 		if err != nil {
-			return nil, err
+			// skip engines that are not available
+			continue
 		}
 		containerCount += len(c)
 		imageCount += len(i)
@@ -257,7 +259,7 @@ func (c *Cluster) ClusterInfo() (*citadel.ClusterInfo, error) {
 		EngineCount:    engineCount,
 		ReservedCpus:   reservedCpus,
 		ReservedMemory: reservedMemory,
-	}, nil
+	}
 }
 
 // Close signals to the cluster that no other actions will be applied
