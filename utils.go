@@ -87,7 +87,7 @@ func FromDockerContainer(id, image string, engine *Engine) (*Container, error) {
 	)
 
 	for _, e := range info.Config.Env {
-		vals := strings.Split(e, "=")
+		vals := strings.SplitN(e, "=", 2)
 		k, v := vals[0], vals[1]
 
 		switch k {
