@@ -79,13 +79,18 @@ func (c *Cluster) RemoveEngine(e *citadel.Engine) error {
 // ListContainers returns all the containers running in the cluster
 func (c *Cluster) ListContainers(all bool) []*citadel.Container {
 	out := []*citadel.Container{}
-
-	for _, e := range c.engines {
-		containers, _ := e.ListContainers(all)
-
-		out = append(out, containers...)
+	
+	messages := make(chan []*citadel.Container, 1)
+	for _, e := range engines {
+		go func(engine *citadel.Engine){
+			containers, _ := engine.ListContainers(all)
+			messages <- containers
+		}(e)
 	}
-
+	for i := 0; i < len(engines); i++ {
+		containers := <-messages
+		out = append(out, containers...)
+        }
 	return out
 }
 
