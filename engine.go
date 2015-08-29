@@ -116,6 +116,8 @@ func (e *Engine) Start(c *Container, pullImage bool) error {
 			},
 		}
 	}
+	
+	config.HostConfig = *hostConfig
 
 	if pullImage {
 		if err := e.Pull(i.Name); err != nil {
